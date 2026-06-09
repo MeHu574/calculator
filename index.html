@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface2: #242424;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #f0f0f0;
+    --muted: #888;
+    --accent: #c8f135;
+    --accent-dim: rgba(200,241,53,0.12);
+    --accent-text: #0f0f0f;
+    --danger: #ff5c5c;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  header h1 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+
+  header p {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+
+  .calc {
+    width: 100%;
+    max-width: 340px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 20px;
+    overflow: hidden;
+  }
+
+  .display {
+    padding: 1.5rem 1.5rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    min-height: 110px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  .display-history {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    text-align: right;
+    min-height: 16px;
+    letter-spacing: 0.03em;
+  }
+
+  .display-current {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 36px;
+    font-weight: 600;
+    text-align: right;
+    color: var(--text);
+    word-break: break-all;
+    line-height: 1.1;
+    transition: color 0.15s;
+  }
+
+  .display-current.error {
+    color: var(--danger);
+    font-size: 20px;
+  }
+
+  .keypad {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+  }
+
+  .key {
+    background: var(--surface);
+    border: none;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 17px;
+    font-weight: 400;
+    height: 64px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.08s, color 0.08s;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .key:hover { background: var(--surface2); }
+  .key:active { background: #2e2e2e; transform: scale(0.96); }
+
+  .key.op {
+    color: var(--accent);
+    font-size: 20px;
+  }
+
+  .key.op:hover { background: var(--accent-dim); }
+
+  .key.eq {
+    background: var(--accent);
+    color: var(--accent-text);
+    font-size: 22px;
+    font-weight: 600;
+  }
+
+  .key.eq:hover { background: #d6ff3e; }
+  .key.eq:active { background: #b8e020; }
+
+  .key.clear {
+    color: var(--danger);
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+  }
+
+  .key.clear:hover { background: rgba(255,92,92,0.1); }
+
+  .key.del { color: var(--muted); font-size: 15px; }
+  .key.del:hover { background: var(--surface2); color: var(--text); }
+
+  .key.zero { grid-column: span 2; justify-content: flex-start; padding-left: 28px; }
+
+  footer {
+    margin-top: 1.5rem;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    letter-spacing: 0.04em;
+  }
+
+  footer kbd {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .key { transition: none; }
+    .display-current { transition: none; }
+  }
+
+  @media (max-width: 400px) {
+    .display-current { font-size: 28px; }
+    .key { height: 56px; font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>calc</h1>
+  <p>keyboard supported</p>
+</header>
+
+<div class="calc" role="application" aria-label="Calculator">
+  <div class="display">
+    <div class="display-history" id="history" aria-live="polite"></div>
+    <div class="display-current" id="current" aria-live="assertive">0</div>
+  </div>
+  <div class="keypad">
+    <button class="key clear" onclick="clr()" aria-label="Clear">AC</button>
+    <button class="key del"   onclick="del()" aria-label="Backspace">⌫</button>
+    <button class="key op"    onclick="inputOp('%')" aria-label="Modulo">%</button>
+    <button class="key op"    onclick="inputOp('/')" aria-label="Divide">÷</button>
+
+    <button class="key" onclick="inputNum('7')">7</button>
+    <button class="key" onclick="inputNum('8')">8</button>
+    <button class="key" onclick="inputNum('9')">9</button>
+    <button class="key op"    onclick="inputOp('*')" aria-label="Multiply">×</button>
+
+    <button class="key" onclick="inputNum('4')">4</button>
+    <button class="key" onclick="inputNum('5')">5</button>
+    <button class="key" onclick="inputNum('6')">6</button>
+    <button class="key op"    onclick="inputOp('-')" aria-label="Subtract">−</button>
+
+    <button class="key" onclick="inputNum('1')">1</button>
+    <button class="key" onclick="inputNum('2')">2</button>
+    <button class="key" onclick="inputNum('3')">3</button>
+    <button class="key op"    onclick="inputOp('+')" aria-label="Add">+</button>
+
+    <button class="key zero"  onclick="inputNum('0')">0</button>
+    <button class="key"       onclick="inputDot()">.</button>
+    <button class="key eq"    onclick="calc()" aria-label="Equals">=</button>
+  </div>
+</div>
+
+<footer>
+  use keyboard &nbsp;·&nbsp; <kbd>Esc</kbd> to clear
+</footer>
+
+<script>
+  let num1 = '', op = '', num2 = '', hasResult = false;
+
+  const $cur = document.getElementById('current');
+  const $hist = document.getElementById('history');
+
+  const SYM = { '+': '+', '-': '−', '*': '×', '/': '÷', '%': '%' };
+
+  function setDisplay(val, isError) {
+    $cur.textContent = val;
+    $cur.classList.toggle('error', !!isError);
+  }
+
+  function inputNum(n) {
+    if (hasResult) { num1 = ''; op = ''; num2 = ''; hasResult = false; $hist.textContent = ''; }
+    if (!op) { if (num1.length >= 14) return; num1 += n; setDisplay(num1); }
+    else     { if (num2.length >= 14) return; num2 += n; setDisplay(num2); }
+  }
+
+  function inputDot() {
+    if (hasResult) { num1 = '0'; op = ''; num2 = ''; hasResult = false; $hist.textContent = ''; }
+    if (!op) { if (!num1.includes('.')) { num1 += num1 ? '.' : '0.'; setDisplay(num1); } }
+    else     { if (!num2.includes('.')) { num2 += num2 ? '.' : '0.'; setDisplay(num2); } }
+  }
+
+  function inputOp(o) {
+    if (num1 === '' && !hasResult) return;
+    if (num1 && num2 && op) calc(true);
+    op = o; num2 = ''; hasResult = false;
+    $hist.textContent = (num1 || '0') + ' ' + SYM[o];
+    setDisplay(num1 || '0');
+  }
+
+  function calc(chain) {
+    if (!num1 || !op || !num2) return;
+    const a = parseFloat(num1), b = parseFloat(num2);
+    let res;
+    if (op === '+') res = a + b;
+    else if (op === '-') res = a - b;
+    else if (op === '*') res = a * b;
+    else if (op === '/') {
+      if (b === 0) { setDisplay("can't divide by zero", true); $hist.textContent = num1 + ' ÷ ' + num2 + ' ='; num1 = ''; op = ''; num2 = ''; return; }
+      res = a / b;
+    }
+    else if (op === '%') res = a % b;
+
+    $hist.textContent = num1 + ' ' + SYM[op] + ' ' + num2 + ' =';
+    const rounded = parseFloat(res.toFixed(10));
+    setDisplay(rounded);
+    num1 = String(rounded); op = ''; num2 = '';
+    if (!chain) hasResult = true;
+  }
+
+  function clr() { num1 = ''; op = ''; num2 = ''; hasResult = false; setDisplay('0'); $hist.textContent = ''; }
+
+  function del() {
+    if (hasResult) return;
+    if (num2)      { num2 = num2.slice(0, -1); setDisplay(num2 || '0'); }
+    else if (op)   { op = ''; $hist.textContent = ''; setDisplay(num1 || '0'); }
+    else if (num1) { num1 = num1.slice(0, -1); setDisplay(num1 || '0'); }
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key >= '0' && e.key <= '9') inputNum(e.key);
+    else if (e.key === '.')           inputDot();
+    else if (e.key === '+')           inputOp('+');
+    else if (e.key === '-')           inputOp('-');
+    else if (e.key === '*')           inputOp('*');
+    else if (e.key === '/') { e.preventDefault(); inputOp('/'); }
+    else if (e.key === '%')           inputOp('%');
+    else if (e.key === 'Enter' || e.key === '=') calc();
+    else if (e.key === 'Backspace')   del();
+    else if (e.key === 'Escape')      clr();
+  });
+</script>
+</body>
+</html>
